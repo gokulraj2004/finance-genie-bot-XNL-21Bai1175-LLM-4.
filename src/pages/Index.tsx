@@ -7,9 +7,23 @@ import TopStocks from "@/components/TopStocks";
 import MarketOverview from "@/components/MarketOverview";
 import RecentSearches from "@/components/RecentSearches";
 
+const RECENT_SEARCHES_KEY = "finance-genie-stocks";
+
 const Index = () => {
   const [activeTab, setActiveTab] = useState("chat");
   const [recentSearches, setRecentSearches] = useState<string[]>(["AAPL", "MSFT", "TSLA"]);
+
+  // Load recent searches from localStorage on component mount
+  useEffect(() => {
+    try {
+      const savedStocks = localStorage.getItem(RECENT_SEARCHES_KEY);
+      if (savedStocks) {
+        setRecentSearches(JSON.parse(savedStocks));
+      }
+    } catch (error) {
+      console.error("Error loading recent searches:", error);
+    }
+  }, []);
 
   const handleSearchSelect = (symbol: string) => {
     // Set the active tab to chat when a stock is selected

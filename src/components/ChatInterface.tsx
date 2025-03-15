@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +13,9 @@ interface MessageProps {
   content: string;
 }
 
+const STORAGE_KEY = "finance-genie-chat";
+const STOCK_HISTORY_KEY = "finance-genie-stocks";
+
 const ChatInterface = () => {
   const [messages, setMessages] = useState<MessageProps[]>([
     {
@@ -28,7 +30,42 @@ const ChatInterface = () => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auto scroll to bottom when new messages are added
+  useEffect(() => {
+    try {
+      const savedMessages = localStorage.getItem(STORAGE_KEY);
+      if (savedMessages) {
+        setMessages(JSON.parse(savedMessages));
+      }
+      
+      const savedStocks = localStorage.getItem(STOCK_HISTORY_KEY);
+      if (savedStocks) {
+        setStockHistory(JSON.parse(savedStocks));
+      }
+    } catch (error) {
+      console.error("Error loading chat history:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (messages.length > 1) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+      }
+    } catch (error) {
+      console.error("Error saving chat history:", error);
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    try {
+      if (stockHistory.length > 0) {
+        localStorage.setItem(STOCK_HISTORY_KEY, JSON.stringify(stockHistory));
+      }
+    } catch (error) {
+      console.error("Error saving stock history:", error);
+    }
+  }, [stockHistory]);
+
   useEffect(() => {
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
@@ -38,7 +75,6 @@ const ChatInterface = () => {
     }
   }, [messages]);
 
-  // Focus input on mount
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus();
@@ -51,10 +87,6 @@ const ChatInterface = () => {
     const userMessage = input.trim();
     setInput("");
     
-    // Add user message to chat
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
-    
-    // Check for stock request
     const stockRegex = /\b([A-Za-z]{1,5})\b.*(?:stock|price|chart|quote)/i;
     const stockMatch = userMessage.match(stockRegex);
     
@@ -62,46 +94,38 @@ const ChatInterface = () => {
       const symbol = stockMatch[1].toUpperCase();
       setStockSymbol(symbol);
       
-      // Add to stock history if not already present
       if (!stockHistory.includes(symbol)) {
         setStockHistory(prev => [symbol, ...prev].slice(0, 5));
       }
       
-      // Fetch stock data and include in AI response
       try {
         const stockData = await getStockQuote(symbol);
         if (stockData) {
-          // Add a system message with stock data
           const stockInfo = `${stockData.name} (${stockData.symbol}) is currently trading at ${stockData.price.toFixed(2)}, ${stockData.change > 0 ? 'up' : 'down'} ${Math.abs(stockData.changePercent).toFixed(2)}% today.`;
           setMessages(prev => [...prev, { 
             role: "assistant", 
             content: `I found the latest data for ${symbol}:\n\n${stockInfo}\n\nThe stock chart is displayed below. What else would you like to know about this stock?`
           }]);
-          return; // Skip the AI response since we've added our own
+          return;
         }
       } catch (error) {
         console.error("Error fetching stock data:", error);
-        // Continue with AI response if stock fetch fails
       }
     }
     
-    // Generate AI response
     setIsLoading(true);
     try {
-      // Convert messages to format expected by DeepSeek API
       const apiMessages: ChatMessage[] = messages
-        .filter(msg => messages.indexOf(msg) > 0) // Skip the first welcome message
+        .filter(msg => messages.indexOf(msg) > 0)
         .map(msg => ({
           role: msg.role === "user" ? "user" : "assistant",
           content: msg.content
         }));
       
-      // Add the new user message
       apiMessages.push({ role: "user", content: userMessage });
       
       const response = await generateResponse(apiMessages);
       
-      // Add AI response to chat
       setMessages((prev) => [...prev, { role: "assistant", content: response }]);
     } catch (error) {
       console.error("Error generating response:", error);
@@ -120,6 +144,12 @@ const ChatInterface = () => {
 
   const handleStockHistorySelect = (symbol: string) => {
     setInput(`Tell me about ${symbol} stock`);
+  };
+
+  const clearChatHistory = () => {
+    setMessages([messages[0]]);
+    localStorage.removeItem(STORAGE_KEY);
+    toast.success("Chat history cleared");
   };
 
   return (
@@ -177,7 +207,19 @@ const ChatInterface = () => {
 
       {stockHistory.length > 0 && (
         <div className="px-4 pt-2">
-          <div className="text-xs text-muted-foreground mb-1">Recent stocks:</div>
+          <div className="flex justify-between items-center">
+            <div className="text-xs text-muted-foreground mb-1">Recent stocks:</div>
+            {messages.length > 1 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 text-xs"
+                onClick={clearChatHistory}
+              >
+                Clear chat
+              </Button>
+            )}
+          </div>
           <div className="flex flex-wrap gap-1">
             {stockHistory.map((symbol) => (
               <Button 
