@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from "@/components/Header";
 import ChatInterface from "@/components/ChatInterface";
@@ -12,6 +12,8 @@ const Index = () => {
   const [recentSearches, setRecentSearches] = useState<string[]>(["AAPL", "MSFT", "TSLA"]);
 
   const handleSearchSelect = (symbol: string) => {
+    // Set the active tab to chat when a stock is selected
+    setActiveTab("chat");
     // This would trigger a search for the symbol
     console.log(`Searching for ${symbol}`);
   };

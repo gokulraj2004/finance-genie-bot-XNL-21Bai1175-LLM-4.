@@ -7,6 +7,7 @@ import { Send, Cpu, ArrowUpCircle } from "lucide-react";
 import { ChatMessage, generateResponse } from "@/services/deepseekApi";
 import { toast } from "sonner";
 import StockDisplay from "./StockDisplay";
+import { getStockQuote } from "@/services/yahooFinanceApi";
 
 interface MessageProps {
   role: "user" | "assistant";
@@ -23,6 +24,7 @@ const ChatInterface = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [stockSymbol, setStockSymbol] = useState<string | null>(null);
+  const [stockHistory, setStockHistory] = useState<string[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -57,7 +59,30 @@ const ChatInterface = () => {
     const stockMatch = userMessage.match(stockRegex);
     
     if (stockMatch) {
-      setStockSymbol(stockMatch[1].toUpperCase());
+      const symbol = stockMatch[1].toUpperCase();
+      setStockSymbol(symbol);
+      
+      // Add to stock history if not already present
+      if (!stockHistory.includes(symbol)) {
+        setStockHistory(prev => [symbol, ...prev].slice(0, 5));
+      }
+      
+      // Fetch stock data and include in AI response
+      try {
+        const stockData = await getStockQuote(symbol);
+        if (stockData) {
+          // Add a system message with stock data
+          const stockInfo = `${stockData.name} (${stockData.symbol}) is currently trading at ${stockData.price.toFixed(2)}, ${stockData.change > 0 ? 'up' : 'down'} ${Math.abs(stockData.changePercent).toFixed(2)}% today.`;
+          setMessages(prev => [...prev, { 
+            role: "assistant", 
+            content: `I found the latest data for ${symbol}:\n\n${stockInfo}\n\nThe stock chart is displayed below. What else would you like to know about this stock?`
+          }]);
+          return; // Skip the AI response since we've added our own
+        }
+      } catch (error) {
+        console.error("Error fetching stock data:", error);
+        // Continue with AI response if stock fetch fails
+      }
     }
     
     // Generate AI response
@@ -91,6 +116,10 @@ const ChatInterface = () => {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleStockHistorySelect = (symbol: string) => {
+    setInput(`Tell me about ${symbol} stock`);
   };
 
   return (
@@ -143,6 +172,25 @@ const ChatInterface = () => {
       {stockSymbol && (
         <div className="mx-4 my-4">
           <StockDisplay symbol={stockSymbol} onClose={() => setStockSymbol(null)} />
+        </div>
+      )}
+
+      {stockHistory.length > 0 && (
+        <div className="px-4 pt-2">
+          <div className="text-xs text-muted-foreground mb-1">Recent stocks:</div>
+          <div className="flex flex-wrap gap-1">
+            {stockHistory.map((symbol) => (
+              <Button 
+                key={symbol} 
+                variant="outline" 
+                size="sm" 
+                className="h-6 text-xs px-2 py-0"
+                onClick={() => handleStockHistorySelect(symbol)}
+              >
+                {symbol}
+              </Button>
+            ))}
+          </div>
         </div>
       )}
 
