@@ -5,10 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowUp, ArrowDown, Activity } from "lucide-react";
 
 const marketData = [
-  { name: "S&P 500", value: 5,123.45, change: 0.75, changePercent: 0.75 },
-  { name: "Dow Jones", value: 38,762.89, change: -0.28, changePercent: -0.28 },
-  { name: "Nasdaq", value: 16,248.52, change: 1.15, changePercent: 1.15 },
-  { name: "Russell 2000", value: 2,058.47, change: -0.52, changePercent: -0.52 },
+  { name: "S&P 500", value: 5123.45, change: 0.75, changePercent: 0.75 },
+  { name: "Dow Jones", value: 38762.89, change: -0.28, changePercent: -0.28 },
+  { name: "Nasdaq", value: 16248.52, change: 1.15, changePercent: 1.15 },
+  { name: "Russell 2000", value: 2058.47, change: -0.52, changePercent: -0.52 },
   { name: "10-Yr Treasury", value: 4.18, change: 0.05, changePercent: 1.21 }
 ];
 
