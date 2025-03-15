@@ -1,5 +1,6 @@
 FinanceGenie
 ![image](https://github.com/user-attachments/assets/323aedee-eecb-41d0-93e4-6d5889a06d92)
+
 Overview
 FinanceGenie is an AI-powered financial assistant that provides real-time stock data, market insights, and investment advice. The application combines conversational AI with live financial data to help users make informed investment decisions.
 Features
